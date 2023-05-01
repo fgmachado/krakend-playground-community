@@ -1,0 +1,220 @@
+{
+    "$schema": "https://www.krakend.io/schema/v3.json",
+    "version": 3,
+    "name": "KrakenD",
+    "port": 8080,
+    "host": ["http://localhost:8080"],
+    "timeout": "3000ms",
+    "cache_ttl": "300s",
+    "endpoints": [
+        {
+            "endpoint": "/customer-api/customers",
+            "method": "GET",
+            "extra_config": {
+                "auth/validator": {
+                    "alg": "RS256",
+                    "jwk_url": "http://192.168.0.7:8091/realms/udemy/protocol/openid-connect/certs",
+                    "disable_jwk_security": true
+                }
+            },
+            "backend": [
+                {
+                    "host": ["http://192.168.0.7:8092"],
+                    "url_pattern": "/customers",
+                    "is_collection": true,
+                    "mapping": {
+                        "collection": "customers"
+                    }
+                }
+            ]
+        },
+        {
+            "endpoint": "/customer-api/customers",
+            "method": "POST",
+            "extra_config": {
+                "auth/validator": {
+                    "alg": "RS256",
+                    "jwk_url": "http://192.168.0.7:8091/realms/udemy/protocol/openid-connect/certs",
+                    "disable_jwk_security": true
+                }
+            },
+            "backend": [
+                {
+                    "host": ["http://192.168.0.7:8092"],
+                    "url_pattern": "/customers",
+                    "allow": [
+                        "id",
+                        "name",
+                        "email"
+                    ]
+                }
+            ]
+        },
+        {
+            "endpoint": "/customer-api/customers",
+            "method": "PUT",
+            "extra_config": {
+                "auth/validator": {
+                    "alg": "RS256",
+                    "jwk_url": "http://192.168.0.7:8091/realms/udemy/protocol/openid-connect/certs",
+                    "disable_jwk_security": true
+                }
+            },
+            "backend": [
+                {
+                    "host": ["http://192.168.0.7:8092"],
+                    "url_pattern": "/customers",
+                    "allow": [
+                        "id",
+                        "name",
+                        "email"
+                    ]
+                }
+            ]
+        },
+        {
+            "endpoint": "/customer-api/customers/{id}",
+            "method": "GET",
+            "output_encoding": "no-op",
+            "extra_config": {
+                "auth/validator": {
+                    "alg": "RS256",
+                    "jwk_url": "http://192.168.0.7:8091/realms/udemy/protocol/openid-connect/certs",
+                    "disable_jwk_security": true
+                }
+            },
+            "backend": [
+                {
+                    "host": ["http://192.168.0.7:8092"],
+                    "url_pattern": "/customers/{id}",
+                    "allow": [
+                        "id",
+                        "name",
+                        "email"
+                    ]
+                }
+            ]
+        },
+        {
+            "endpoint": "/customer-api/customers/{id}",
+            "method": "DELETE",
+            "output_encoding": "no-op",
+            "extra_config": {
+                "auth/validator": {
+                    "alg": "RS256",
+                    "jwk_url": "http://192.168.0.7:8091/realms/udemy/protocol/openid-connect/certs",
+                    "disable_jwk_security": true
+                }
+            },
+            "backend": [
+                {
+                    "host": ["http://192.168.0.7:8092"],
+                    "url_pattern": "/customers/{id}",
+                    "allow": [
+                        "id",
+                        "name",
+                        "email"
+                    ]
+                }
+            ]
+        }
+    ],
+
+    "sequential_start": true,
+    "async_agent": [
+        {
+            "name": "async-agent-demo",
+            "backend": [
+                {
+                    "host": [
+                        "http://127.0.0.1:8080"
+                    ],
+                    "url_pattern": "/__debug/async-agent-demo",
+                    "method": "POST"
+                }
+            ],
+            "consumer": {
+                "topic": "*.bar",
+                "workers": 20
+            },
+            "connection": {
+                "max_retries": 10,
+                "backoff_strategy": "exponential-jitter"
+            },
+            "extra_config": {
+                "async/amqp": {
+                    "name": "krakend",
+                    "host": "amqp://guest:guest@rabbitmq:5672/",
+                    "exchange": "foo",
+                    "prefetch_count": 40,
+                    "auto_ack": true
+                }
+            }
+        }
+    ],
+    "extra_config": {
+        "telemetry/metrics": {
+            "collection_time": "30s",
+            "listen_address": ":8090"
+        },
+        "telemetry/influx": {
+            "address": "http://influxdb:8086",
+            "ttl": "25s",
+            "buffer_size": 100,
+            "username": "krakend-dev",
+            "password": "pas5w0rd"
+        },
+        "telemetry/logging": {
+            "level": "DEBUG",
+            "prefix": "[KRAKEND]",
+            "syslog": false,
+            "stdout": true
+        },
+        "telemetry/gelf": {
+            "address": "logstash:12201",
+            "enable_tcp": false
+        },
+        "telemetry/opencensus": {
+            "sample_rate": 100,
+            "reporting_period": 1,
+            "enabled_layers": {
+                "backend": true,
+                "router": true
+            },
+            "exporters": {
+                "jaeger": {
+                    "endpoint": "http://jaeger:14268/api/traces",
+                    "service_name": "krakend"
+                }
+            }
+        },
+        "security/cors": {
+            "allow_origins": [
+                "*"
+            ],
+            "allow_methods": [
+                "POST",
+                "GET"
+            ],
+            "allow_headers": [
+                "Origin",
+                "Authorization",
+                "Content-Type"
+            ],
+            "expose_headers": [
+                "Content-Length"
+            ],
+            "max_age": "12h"
+        },
+        "auth/revoker": {
+            "N": 10000000,
+            "P": 0.0000001,
+            "hash_name": "optimal",
+            "TTL": 1500,
+            "port": 1234,
+            "token_keys": [
+                "jti"
+            ]
+        }
+    }
+}
